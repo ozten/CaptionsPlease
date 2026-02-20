@@ -1,0 +1,37 @@
+{
+  "name": "tiktok-video-captioning",
+  "version": "1.0.0",
+  "description": "TikTok-style video captioning with Whisper transcription and Remotion rendering",
+  "type": "module",
+  "scripts": {
+    "pipeline": "tsx src/scripts/01-transcribe.ts && tsx src/scripts/02-analyze-fillers.ts",
+    "continue": "tsx src/scripts/03-detect-emphasis.ts && tsx src/scripts/04-generate-timing.ts && tsx src/scripts/05-cut-video.ts && tsx src/scripts/06-render.ts",
+    "transcribe": "tsx src/scripts/01-transcribe.ts",
+    "analyze-fillers": "tsx src/scripts/02-analyze-fillers.ts",
+    "detect-emphasis": "tsx src/scripts/03-detect-emphasis.ts",
+    "generate-timing": "tsx src/scripts/04-generate-timing.ts",
+    "cut-video": "tsx src/scripts/05-cut-video.ts",
+    "render": "tsx src/scripts/06-render.ts",
+    "preview": "tsx src/scripts/preview.ts",
+    "preview:empty": "remotion studio src/remotion/index.ts",
+    "build": "remotion bundle"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.242",
+    "@remotion/cli": "^4.0.242",
+    "@remotion/renderer": "^4.0.242",
+    "dotenv": "^16.4.7",
+    "openai": "^4.77.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.242",
+    "zod": "3.22.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "prettier": "^3.8.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
