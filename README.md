@@ -8,9 +8,23 @@ A Node.js/TypeScript pipeline for processing vertical videos (1080x1920) with:
 
 ## Requirements
 
-- Node.js 18+
-- FFmpeg (`brew install ffmpeg`)
-- OpenAI API key with Whisper and GPT-4o access
+### System Dependencies
+
+- **Node.js 18+** and npm
+- **FFmpeg** - required for audio extraction and video cutting
+  - macOS: `brew install ffmpeg`
+  - Ubuntu/Debian: `sudo apt install ffmpeg`
+  - Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html) or use `choco install ffmpeg`
+
+### API Keys
+
+- **OpenAI API key** with access to:
+  - **Whisper API** - for audio transcription with word-level timestamps
+  - **GPT-4o** - for emphasis word detection
+
+### Automatic Dependencies
+
+- **Chromium** - Remotion automatically downloads a compatible Chromium version on first render (no manual install needed)
 
 ## Installation
 
