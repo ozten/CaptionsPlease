@@ -36,7 +36,33 @@ cp .env.example .env
 
 ## Usage
 
-### Quick Start
+### Daily Workflow
+
+For daily video processing (recommended):
+
+1. **Clean up from previous session:**
+   ```bash
+   npm run clean
+   ```
+   This removes cached files from `temp/`, `data/`, and `public/video.mp4`.
+
+2. **Archive your previous work (optional):**
+   Move old videos from `input/` to `archive/` to keep things organized.
+
+3. **Add your new video:**
+   Place your `.mov` or `.mp4` file in the `input/` folder.
+
+4. **Run the pipeline:**
+   ```bash
+   npm run pipeline    # Transcribe + analyze fillers
+   # Review data/*.json files if needed
+   npm run continue    # Emphasis detection + cut + render
+   ```
+
+5. **Find your output:**
+   Your captioned video will be in `output/`.
+
+### Quick Start (First Time)
 
 1. Place a video in the `input/` folder (e.g., `input/test.mp4`)
 
@@ -59,6 +85,7 @@ cp .env.example .env
 Run each step separately for more control:
 
 ```bash
+npm run clean             # Clear temp/, data/, and public/video.mp4
 npm run transcribe        # Step 1: Whisper transcription
 npm run analyze-fillers   # Step 2: Detect fillers and pauses
 npm run detect-emphasis   # Step 3: GPT-4o emphasis detection

@@ -134,8 +134,24 @@ async function main() {
     originalDurationMs
   );
 
-  // Save timing data
+  // Preserve existing position and keyframes if they exist
   const outputPath = path.join(config.dataDir, "05_caption_timing.json");
+  if (fs.existsSync(outputPath)) {
+    try {
+      const existingData = JSON.parse(fs.readFileSync(outputPath, "utf-8"));
+      if (existingData.position) {
+        captionTiming.position = existingData.position;
+      }
+      if (existingData.positionKeyframes?.length > 0) {
+        captionTiming.positionKeyframes = existingData.positionKeyframes;
+        console.log(`Preserved ${existingData.positionKeyframes.length} existing keyframes`);
+      }
+    } catch {
+      // Ignore parse errors, use defaults
+    }
+  }
+
+  // Save timing data
   fs.writeFileSync(outputPath, JSON.stringify(captionTiming, null, 2));
   console.log(`Caption timing saved to: ${outputPath}`);
 
