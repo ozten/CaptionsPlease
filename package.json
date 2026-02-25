@@ -4,6 +4,7 @@
   "description": "TikTok-style video captioning with Whisper transcription and Remotion rendering",
   "type": "module",
   "scripts": {
+    "clean": "rm -rf temp/* data/* public/video.mp4 2>/dev/null; echo 'Cleaned temp/, data/, and public/video.mp4'",
     "pipeline": "tsx src/scripts/01-transcribe.ts && tsx src/scripts/02-analyze-fillers.ts",
     "continue": "tsx src/scripts/03-detect-emphasis.ts && tsx src/scripts/04-generate-timing.ts && tsx src/scripts/05-cut-video.ts && tsx src/scripts/06-render.ts",
     "transcribe": "tsx src/scripts/01-transcribe.ts",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@types/node": "^22.10.5",
     "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.7",
     "prettier": "^3.8.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"

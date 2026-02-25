@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from "react";
-import { useCurrentFrame } from "remotion";
+import React, { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { useCurrentFrame, getRemotionEnvironment } from "remotion";
 import { CaptionTimingData, CaptionPosition, PositionKeyframe } from "../types";
 
 interface ControlPanelProps {
@@ -9,6 +10,8 @@ interface ControlPanelProps {
   onPositionChange: (position: CaptionPosition) => void;
   onKeyframesChange: (keyframes: PositionKeyframe[]) => void;
   onEmphasisToggle: (wordIndex: number) => void;
+  onBackToProjects?: () => void;
+  projectName?: string;
 }
 
 const SAVE_SERVER_URL = "http://localhost:3333/save";
@@ -20,10 +23,32 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onPositionChange,
   onKeyframesChange,
   onEmphasisToggle,
+  onBackToProjects,
+  projectName,
 }) => {
   const currentFrame = useCurrentFrame();
+  const environment = getRemotionEnvironment();
   const [activeTab, setActiveTab] = useState<"position" | "keyframes" | "emphasis">("position");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+
+  // Create portal container on mount
+  useEffect(() => {
+    const containerId = "caption-control-panel-root";
+    let container = document.getElementById(containerId);
+
+    if (!container) {
+      container = document.createElement("div");
+      container.id = containerId;
+      document.body.appendChild(container);
+    }
+
+    setPortalContainer(container);
+
+    return () => {
+      // Don't remove on unmount - other instances might use it
+    };
+  }, []);
 
   const handleSave = useCallback(async () => {
     setSaveStatus("saving");
@@ -85,8 +110,24 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     error: "Error - Retry",
   }[saveStatus];
 
-  return (
+  // Never render controls during actual video rendering
+  // Don't render until portal container is ready
+  if (environment.isRendering || !portalContainer) {
+    return null;
+  }
+
+  const panel = (
     <div style={panelStyle}>
+      {/* Project header with back button */}
+      {onBackToProjects && (
+        <div style={projectHeaderStyle}>
+          <button style={backButtonStyle} onClick={onBackToProjects}>
+            ← Projects
+          </button>
+          {projectName && <span style={projectNameStyle}>{projectName}</span>}
+        </div>
+      )}
+
       {/* Save button - always visible */}
       <button
         style={{
@@ -214,7 +255,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       {activeTab === "emphasis" && (
         <div style={contentStyle}>
           <div style={wordListStyle}>
-            {captionData.allWords.map((word, idx) => (
+            {/* Use words from pages (source of truth for rendering) instead of allWords */}
+            {captionData.pages.flatMap((page) => page.words).map((word, idx) => (
               <span
                 key={`${word.originalIndex}-${idx}`}
                 style={{
@@ -236,60 +278,64 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       )}
     </div>
   );
+
+  return createPortal(panel, portalContainer);
 };
 
 // Styles
 const panelStyle: React.CSSProperties = {
   position: "fixed",
-  top: 10,
-  right: 10,
-  width: 320,
-  backgroundColor: "rgba(0, 0, 0, 0.95)",
+  top: 50,
+  left: 290,
+  width: 300,
+  backgroundColor: "#1a1a1a",
   borderRadius: 8,
-  padding: 12,
+  padding: 16,
   fontFamily: "system-ui, sans-serif",
-  fontSize: 14,
+  fontSize: 15,
   color: "#fff",
-  zIndex: 1000,
-  maxHeight: "90vh",
+  zIndex: 99999,
+  maxHeight: "calc(100vh - 120px)",
   overflowY: "auto",
+  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)",
+  border: "1px solid #333",
 };
 
 const saveButtonStyle: React.CSSProperties = {
   width: "100%",
-  padding: "12px 16px",
+  padding: "14px 16px",
   backgroundColor: "#00FF88",
   border: "none",
-  borderRadius: 4,
+  borderRadius: 6,
   color: "#000",
   fontWeight: 700,
   cursor: "pointer",
-  fontSize: 14,
-  marginBottom: 12,
+  fontSize: 15,
+  marginBottom: 16,
 };
 
 const headerStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 14,
   color: "#888",
-  marginBottom: 8,
+  marginBottom: 12,
   textAlign: "center",
 };
 
 const tabsStyle: React.CSSProperties = {
   display: "flex",
-  gap: 4,
-  marginBottom: 12,
+  gap: 6,
+  marginBottom: 16,
 };
 
 const tabStyle: React.CSSProperties = {
   flex: 1,
-  padding: "6px 8px",
+  padding: "10px 12px",
   backgroundColor: "#333",
   border: "none",
-  borderRadius: 4,
+  borderRadius: 6,
   color: "#aaa",
   cursor: "pointer",
-  fontSize: 11,
+  fontSize: 13,
 };
 
 const activeTabStyle: React.CSSProperties = {
@@ -302,38 +348,39 @@ const activeTabStyle: React.CSSProperties = {
 const contentStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 10,
+  gap: 16,
 };
 
 const sliderRowStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 4,
+  gap: 8,
 };
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 14,
   color: "#aaa",
 };
 
 const sliderStyle: React.CSSProperties = {
   width: "100%",
+  height: 24,
   accentColor: "#00FF88",
 };
 
 const addButtonStyle: React.CSSProperties = {
-  padding: "10px 16px",
+  padding: "12px 16px",
   backgroundColor: "#444",
   border: "none",
-  borderRadius: 4,
+  borderRadius: 6,
   color: "#fff",
   fontWeight: 600,
   cursor: "pointer",
-  fontSize: 12,
+  fontSize: 14,
 };
 
 const emptyStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 14,
   color: "#666",
   textAlign: "center",
   padding: 20,
@@ -342,79 +389,109 @@ const emptyStyle: React.CSSProperties = {
 const keyframeListStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 8,
-  maxHeight: 250,
+  gap: 10,
+  maxHeight: 300,
   overflowY: "auto",
 };
 
 const keyframeItemStyle: React.CSSProperties = {
   backgroundColor: "#222",
-  borderRadius: 4,
-  padding: 8,
+  borderRadius: 6,
+  padding: 12,
 };
 
 const keyframeHeaderStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: 6,
+  marginBottom: 10,
 };
 
 const keyframeTimeStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: 13,
   color: "#00FF88",
   fontWeight: 600,
 };
 
 const deleteButtonStyle: React.CSSProperties = {
-  width: 20,
-  height: 20,
+  width: 28,
+  height: 28,
   backgroundColor: "#ff4444",
   border: "none",
-  borderRadius: 4,
+  borderRadius: 6,
   color: "#fff",
   cursor: "pointer",
-  fontSize: 14,
+  fontSize: 18,
   lineHeight: 1,
 };
 
 const keyframeControlsStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "40px 1fr",
-  gap: 4,
+  gridTemplateColumns: "50px 1fr",
+  gap: 8,
   alignItems: "center",
 };
 
 const smallLabelStyle: React.CSSProperties = {
-  fontSize: 10,
+  fontSize: 13,
   color: "#888",
 };
 
 const smallSliderStyle: React.CSSProperties = {
   width: "100%",
   accentColor: "#00FF88",
-  height: 16,
+  height: 20,
 };
 
 const hintStyle: React.CSSProperties = {
-  fontSize: 10,
+  fontSize: 12,
   color: "#666",
   textAlign: "center",
+  marginTop: 8,
 };
 
 const wordListStyle: React.CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
-  gap: 6,
-  maxHeight: 300,
+  gap: 8,
+  maxHeight: 350,
   overflowY: "auto",
   padding: 4,
 };
 
 const wordChipStyle: React.CSSProperties = {
-  padding: "4px 8px",
-  borderRadius: 4,
-  fontSize: 12,
+  padding: "6px 10px",
+  borderRadius: 6,
+  fontSize: 14,
   cursor: "pointer",
   transition: "all 0.15s",
+};
+
+const projectHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  marginBottom: 16,
+  paddingBottom: 12,
+  borderBottom: "1px solid #333",
+};
+
+const backButtonStyle: React.CSSProperties = {
+  padding: "8px 12px",
+  backgroundColor: "#333",
+  border: "none",
+  borderRadius: 6,
+  color: "#00FF88",
+  cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 600,
+};
+
+const projectNameStyle: React.CSSProperties = {
+  fontSize: 14,
+  color: "#888",
+  flex: 1,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 };

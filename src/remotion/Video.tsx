@@ -10,6 +10,8 @@ export interface CaptionedVideoProps {
   emphasisIndices: number[];
   showControls?: boolean;
   captionDataJson: string;
+  onBackToProjects?: () => void;
+  projectName?: string;
 }
 
 export const CaptionedVideo: React.FC<CaptionedVideoProps> = ({
@@ -18,6 +20,8 @@ export const CaptionedVideo: React.FC<CaptionedVideoProps> = ({
   emphasisIndices,
   showControls = false,
   captionDataJson,
+  onBackToProjects,
+  projectName,
 }) => {
   // Parse caption data
   const baseCaptionData: CaptionTimingData | null = useMemo(() => {
@@ -37,39 +41,32 @@ export const CaptionedVideo: React.FC<CaptionedVideoProps> = ({
   const [emphasisToggles, setEmphasisToggles] = useState<Set<number>>(new Set());
 
   // Compute final caption data with all overrides
+  // pages is the source of truth - allWords is derived from it
   const captionData = useMemo(() => {
     if (!baseCaptionData) return null;
 
-    const emphasisSet = new Set([
-      ...emphasisIndices,
-      ...Array.from(emphasisToggles),
-    ]);
+    // Apply emphasis toggles to pages (source of truth)
+    const updatedPages = baseCaptionData.pages.map((page) => ({
+      ...page,
+      words: page.words.map((word) => {
+        const shouldEmphasize = emphasisToggles.has(word.originalIndex)
+          ? !word.isEmphasis
+          : word.isEmphasis;
+        return { ...word, isEmphasis: shouldEmphasize };
+      }),
+    }));
+
+    // Derive allWords from pages for consistency
+    const allWords = updatedPages.flatMap((page) => page.words);
 
     return {
       ...baseCaptionData,
       position: localPosition,
       positionKeyframes: keyframes,
-      allWords: baseCaptionData.allWords.map((word) => {
-        const shouldEmphasize = emphasisToggles.has(word.originalIndex)
-          ? !word.isEmphasis
-          : emphasisIndices.length > 0
-            ? emphasisSet.has(word.originalIndex)
-            : word.isEmphasis;
-        return { ...word, isEmphasis: shouldEmphasize };
-      }),
-      pages: baseCaptionData.pages.map((page) => ({
-        ...page,
-        words: page.words.map((word) => {
-          const shouldEmphasize = emphasisToggles.has(word.originalIndex)
-            ? !word.isEmphasis
-            : emphasisIndices.length > 0
-              ? emphasisSet.has(word.originalIndex)
-              : word.isEmphasis;
-          return { ...word, isEmphasis: shouldEmphasize };
-        }),
-      })),
+      pages: updatedPages,
+      allWords,
     };
-  }, [baseCaptionData, localPosition, keyframes, emphasisIndices, emphasisToggles]);
+  }, [baseCaptionData, localPosition, keyframes, emphasisToggles]);
 
   const handleEmphasisToggle = useCallback((wordIndex: number) => {
     setEmphasisToggles((prev) => {
@@ -124,6 +121,8 @@ export const CaptionedVideo: React.FC<CaptionedVideoProps> = ({
           onPositionChange={setLocalPosition}
           onKeyframesChange={setKeyframes}
           onEmphasisToggle={handleEmphasisToggle}
+          onBackToProjects={onBackToProjects}
+          projectName={projectName}
         />
       )}
     </AbsoluteFill>
